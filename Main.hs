@@ -101,12 +101,12 @@ main = getArgs >>= \[path] -> do
     now <- getMonotonicTime
     mcontent <- atomically $ optional $ do
       content <- readTVar vQueue
-      let content' = Map.filter
-            (\s -> now - getFirst (summaryTime s) > configDelay)
+      let (ready, remainder) = Map.partition
+            (\s -> now - getFirst (summaryTime s) >= configDelay)
             content
-      when (Map.null content') retry
-      writeTVar vQueue mempty
-      pure content'
+      when (Map.null ready) retry
+      writeTVar vQueue remainder
+      pure ready
     forM_ mcontent $ post man reqBase
     threadDelay 1000000
   
